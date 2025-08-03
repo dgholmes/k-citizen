@@ -1,20 +1,126 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function App() {
+import HomeScreen from './src/screens/HomeScreen';
+import StudyScreen from './src/screens/StudyScreen';
+import MockTestScreen from './src/screens/MockTestScreen';
+import ProgressScreen from './src/screens/ProgressScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import QuizScreen from './src/screens/QuizScreen';
+import ResultsScreen from './src/screens/ResultsScreen';
+import MockTestSettingsScreen from './src/screens/MockTestSettingsScreen';
+
+const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+function StudyStack() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="StudyMain" 
+        component={StudyScreen} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Quiz" 
+        component={QuizScreen}
+        options={{ 
+          headerShown: true,
+          headerTitle: '',
+        }}
+      />
+      <Stack.Screen 
+        name="Results" 
+        component={ResultsScreen}
+        options={{ 
+          headerShown: true,
+          headerTitle: 'Results',
+        }}
+      />
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+function MockTestStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="MockTestMain" 
+        component={MockTestScreen} 
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="MockTestSettings" 
+        component={MockTestSettingsScreen}
+        options={{ 
+          headerShown: true,
+          headerTitle: 'Mock Test',
+        }}
+      />
+      <Stack.Screen 
+        name="Quiz" 
+        component={QuizScreen}
+        options={{ 
+          headerShown: false,
+          headerTitle: '',
+        }}
+      />
+      <Stack.Screen 
+        name="Results" 
+        component={ResultsScreen}
+        options={{ 
+          headerShown: true,
+          headerTitle: 'Results',
+        }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ focused, color, size }) => {
+              let iconName: any;
+
+              if (route.name === 'Home') {
+                iconName = focused ? 'home' : 'home-outline';
+              } else if (route.name === 'Study') {
+                iconName = focused ? 'book' : 'book-outline';
+              } else if (route.name === 'Mock Test') {
+                iconName = focused ? 'document-text' : 'document-text-outline';
+              } else if (route.name === 'Progress') {
+                iconName = focused ? 'trending-up' : 'trending-up-outline';
+              } else if (route.name === 'Settings') {
+                iconName = focused ? 'settings' : 'settings-outline';
+              }
+
+              return <Ionicons name={iconName} size={size} color={color} />;
+            },
+            tabBarActiveTintColor: '#4A90E2',
+            tabBarInactiveTintColor: 'gray',
+            headerShown: false,
+            tabBarLabelStyle: {
+              fontSize: 12,
+            },
+          })}
+        >
+          <Tab.Screen name="Home" component={HomeScreen} />
+          <Tab.Screen name="Study" component={StudyStack} />
+          <Tab.Screen name="Mock Test" component={MockTestStack} />
+          <Tab.Screen name="Progress" component={ProgressScreen} />
+          <Tab.Screen name="Settings" component={SettingsScreen} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
