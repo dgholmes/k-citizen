@@ -1,10 +1,13 @@
 // src/screens/MockTestSettingsScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MockTestSettingsScreen = ({ navigation }: any) => {
   const [selectedQuestions, setSelectedQuestions] = useState(20);
+  const [isTimeEnabled, setIsTimeEnabled] = useState(true);
   const [selectedTime, setSelectedTime] = useState(30);
+  const insets = useSafeAreaInsets(); // Get safe area insets
 
   const questionOptions = [10, 15, 20, 30];
   const timeOptions = [15, 20, 30, 45];
@@ -13,79 +16,88 @@ const MockTestSettingsScreen = ({ navigation }: any) => {
     navigation.navigate('Quiz', {
       subject: 'Mock Test',
       questionCount: selectedQuestions,
-      timeLimit: selectedTime,
+      timeLimit: isTimeEnabled ? selectedTime : null, // Pass null if time is disabled
     });
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Test Settings</Text>
+    // Use a standard View and apply padding based on insets
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <Text style={styles.title}>Mock Test</Text>
 
-      <View style={styles.settingSection}>
-        <Text style={styles.sectionLabel}>Number of Questions</Text>
-        <View style={styles.optionsContainer}>
-          {questionOptions.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.optionButton,
-                selectedQuestions === option && styles.selectedOption,
-              ]}
-              onPress={() => setSelectedQuestions(option)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  selectedQuestions === option && styles.selectedOptionText,
-                ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View style={styles.descriptionContainer}>
+        <Text style={styles.description}>
+          Take a comprehensive mock test to evaluate your knowledge across all subjects. This will help you prepare for the actual K-Citizen exam.
+        </Text>
       </View>
 
+      {/* Combined Settings Section */}
       <View style={styles.settingSection}>
-        <Text style={styles.sectionLabel}>Time Limit (minutes)</Text>
-        <View style={styles.optionsContainer}>
-          {timeOptions.map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.optionButton,
-                selectedTime === option && styles.selectedOption,
-              ]}
-              onPress={() => setSelectedTime(option)}
-            >
-              <Text
+        {/* Number of Questions */}
+        <View>
+            <Text style={[styles.sectionLabel, { marginBottom: 20 }]}>Number of Questions</Text>
+            <View style={styles.optionsContainer}>
+            {questionOptions.map((option) => (
+                <TouchableOpacity
+                key={option}
                 style={[
-                  styles.optionText,
-                  selectedTime === option && styles.selectedOptionText,
+                    styles.optionButton,
+                    selectedQuestions === option && styles.selectedOption,
                 ]}
-              >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                onPress={() => setSelectedQuestions(option)}
+                >
+                <Text
+                    style={[
+                    styles.optionText,
+                    selectedQuestions === option && styles.selectedOptionText,
+                    ]}
+                >
+                    {option}
+                </Text>
+                </TouchableOpacity>
+            ))}
+            </View>
         </View>
-      </View>
 
-      <View style={styles.summarySection}>
-        <Text style={styles.summaryTitle}>Summary</Text>
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>No. of Questions:</Text>
-            <Text style={styles.summaryValue}>{selectedQuestions} Questions</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Time:</Text>
-            <Text style={styles.summaryValue}>{selectedTime} Minutes</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Question Type:</Text>
-            <Text style={styles.summaryValue}>Random</Text>
-          </View>
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Test Time */}
+        <View>
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Test Time</Text>
+                <Switch
+                    trackColor={{ false: '#E0E0E0', true: '#4A90E2' }}
+                    thumbColor={isTimeEnabled ? '#fff' : '#fff'}
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={() => setIsTimeEnabled(previousState => !previousState)}
+                    value={isTimeEnabled}
+                />
+            </View>
+            <View style={styles.optionsContainer}>
+            {timeOptions.map((option) => (
+                <TouchableOpacity
+                key={option}
+                style={[
+                    styles.optionButton,
+                    selectedTime === option && isTimeEnabled && styles.selectedOption,
+                    !isTimeEnabled && styles.disabledOption,
+                ]}
+                onPress={() => setSelectedTime(option)}
+                disabled={!isTimeEnabled}
+                >
+                <Text
+                    style={[
+                    styles.optionText,
+                    selectedTime === option && isTimeEnabled && styles.selectedOptionText,
+                    !isTimeEnabled && styles.disabledOptionText,
+                    ]}
+                >
+                    {option}
+                </Text>
+                </TouchableOpacity>
+            ))}
+            </View>
         </View>
       </View>
 
@@ -100,91 +112,88 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 20,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 30,
-  },
-  settingSection: {
-    marginBottom: 30,
-  },
-  sectionLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 15,
-    backgroundColor: '#B3D9FF',
-    padding: 10,
-    borderRadius: 8,
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  optionButton: {
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  selectedOption: {
-    backgroundColor: '#4A90E2',
-    borderColor: '#4A90E2',
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedOptionText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  summarySection: {
-    marginBottom: 30,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#1F2123',
+    marginTop: 10,
     marginBottom: 15,
   },
-  summaryContainer: {
+  descriptionContainer: {
     backgroundColor: '#F8F9FA',
     padding: 20,
     borderRadius: 12,
+    marginBottom: 30,
   },
-  summaryItem: {
+  description: {
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  settingSection: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: '#333',
+  sectionLabel: {
+    fontSize: 18,
+    color: '#1F2123',
     fontWeight: '600',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  optionButton: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 14,
+    width: '22%', // Ensure buttons fit well
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  selectedOption: {
+    backgroundColor: '#4A90E2',
+  },
+  disabledOption: {
+    backgroundColor: '#E5E7EB',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#1F2123',
+    fontWeight: '600',
+  },
+  selectedOptionText: {
+    color: '#FFFFFF',
+  },
+  disabledOptionText: {
+      color: '#9CA3AF',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 25,
   },
   startButton: {
     backgroundColor: '#4A90E2',
     padding: 18,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 'auto', // Pushes button to the bottom
+    marginBottom: 10, // Spacing from the bottom edge
   },
   startButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });

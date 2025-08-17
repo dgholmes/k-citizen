@@ -1,19 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }: any) => {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleDoubleTap = () => {
     setIsAnswerRevealed(!isAnswerRevealed);
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -148,8 +149,11 @@ const HomeScreen = ({ navigation }: any) => {
              </View>
           </TouchableOpacity>
         </ScrollView>
+        
+        {/* Add extra bottom padding to ensure proper spacing above tab bar */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -166,7 +170,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: StatusBar.currentHeight || 44,
+    paddingTop: 16, // Remove StatusBar.currentHeight since we're handling it with insets
     paddingBottom: 8,
   },
   appTitle: {
@@ -334,6 +338,9 @@ const styles = StyleSheet.create({
     fontWeight: '400', // Regular weight to match Manrope Regular
     color: '#637F88',
     fontFamily: 'System', // System font as fallback
+  },
+  bottomSpacer: {
+    height: 24, // Add extra space at the bottom for proper spacing above tab bar
   },
 });
 

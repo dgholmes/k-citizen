@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import ResultsScreen from './src/screens/ResultsScreen';
 import MockTestSettingsScreen from './src/screens/MockTestSettingsScreen';
+import MockQuizScreen from './src/screens/MockQuizScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -30,16 +32,14 @@ function StudyStack() {
         name="Quiz" 
         component={QuizScreen}
         options={{ 
-          headerShown: true,
-          headerTitle: '',
+          headerShown: false,
         }}
       />
       <Stack.Screen 
         name="Results" 
         component={ResultsScreen}
         options={{ 
-          headerShown: true,
-          headerTitle: 'Results',
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
@@ -49,33 +49,30 @@ function StudyStack() {
 function MockTestStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen 
+      {/* <Stack.Screen 
         name="MockTestMain" 
         component={MockTestScreen} 
         options={{ headerShown: false }}
-      />
+      /> */}
       <Stack.Screen 
         name="MockTestSettings" 
         component={MockTestSettingsScreen}
         options={{ 
-          headerShown: true,
-          headerTitle: 'Mock Test',
+          headerShown: false, // Changed from true to false if you want custom header
         }}
       />
       <Stack.Screen 
         name="Quiz" 
-        component={QuizScreen}
+        component={MockQuizScreen}
         options={{ 
           headerShown: false,
-          headerTitle: '',
         }}
       />
       <Stack.Screen 
         name="Results" 
         component={ResultsScreen}
         options={{ 
-          headerShown: true,
-          headerTitle: 'Results',
+          headerShown: false, // Changed from true to false if you want custom header
         }}
       />
     </Stack.Navigator>
@@ -112,6 +109,23 @@ export default function App() {
             tabBarLabelStyle: {
               fontSize: 12,
             },
+            tabBarStyle: ((route) => {
+              const routeName = getFocusedRouteNameFromRoute(route) ?? "";
+              if (routeName === "Quiz") {
+                return { display: "none" };
+              }
+
+              // if (routeName === "Quiz" || routeName === "Results" || routeName === "MockTestSettings") {
+              //   return { display: "none" };
+              // }
+
+              // const screensWithoutTabBar = ["Quiz", "Results", "MockTestSettings"];
+              // if (screensWithoutTabBar.includes(routeName)) {
+              //   return { display: "none" };
+              // }
+
+              return {};
+            })(route),
           })}
         >
           <Tab.Screen name="Home" component={HomeScreen} />
@@ -123,4 +137,4 @@ export default function App() {
       </NavigationContainer>
     </SafeAreaProvider>
   );
-}
+} 

@@ -1,32 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+// src/screens/MockQuizScreen.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { questions } from '../data/questions'; // Assuming this path is correct
 import { Question } from '../types'; // Assuming this path is correct
 
-const QuizScreen = ({ route, navigation }: any) => {
-  const { subject } = route.params;
+// Helper function to shuffle an array
+const shuffleArray = (array: any[]) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+};
+
+const MockQuizScreen = ({ route, navigation }: any) => {
+  const { subject, questionCount, timeLimit } = route.params;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [userAnswers, setUserAnswers] = useState<(number | null)[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
+  const [timeLeft, setTimeLeft] = useState(timeLimit ? timeLimit * 60 : null);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const appState = useRef(AppState.currentState);
+  const backgroundTime = useRef<number | null>(null);
 
+
+  // Function to handle quiz completion
+  const finishQuiz = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const score = userAnswers.reduce((acc, answer, index) => {
+        if (index < quizQuestions.length && answer === quizQuestions[index].correctAnswer) {
+            return acc + 1;
+        }
+        return acc;
+    }, 0);
+
+    navigation.navigate('Results', {
+        score,
+        totalQuestions: quizQuestions.length,
+        percentage: Math.round((score / quizQuestions.length) * 100),
+        incorrectAnswers: quizQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer),
+    });
+  };
+
+  // Effect for setting up questions
   useEffect(() => {
-    // Filter questions by subject and limit to 20
-    const filteredQuestions = questions.filter(q => q.subject === subject);
-    const selectedQuestions = filteredQuestions.slice(0, 20);
+    let selectedQuestions;
+    if (subject === 'Mock Test') {
+      // For mock tests, shuffle all questions and take the specified count
+      const allQuestions = shuffleArray([...questions]);
+      selectedQuestions = allQuestions.slice(0, questionCount);
+    } else {
+      // For regular quizzes, filter by subject
+      const filteredQuestions = questions.filter(q => q.subject === subject);
+      selectedQuestions = filteredQuestions.slice(0, 20); // Default to 20 for topic quizzes
+    }
     setQuizQuestions(selectedQuestions);
-    // Initialize userAnswers array with nulls
     setUserAnswers(Array(selectedQuestions.length).fill(null));
-  }, [subject]);
+  }, [subject, questionCount]);
+
+  // Effect for the timer
+  useEffect(() => {
+    if (timeLeft === null) return;
+
+    if (timeLeft === 0) {
+        finishQuiz();
+        return;
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prevTime => (prevTime ? prevTime - 1 : 0));
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timeLeft]);
+
+  // Effect for handling app state changes (background/foreground)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        // App has come to the foreground
+        if (backgroundTime.current && timeLeft) {
+          const timeElapsedInBackground = Math.floor((Date.now() - backgroundTime.current) / 1000);
+          setTimeLeft(prevTime => Math.max(0, (prevTime || 0) - timeElapsedInBackground));
+        }
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App has gone to the background
+        backgroundTime.current = Date.now();
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [timeLeft]);
+
 
   const currentQuestion = quizQuestions[currentQuestionIndex];
 
-  // --- NEW LOGIC: Immediate feedback on selection ---
-  // This function shows feedback as soon as an answer is picked.
   const handleAnswerSelect = (answerIndex: number) => {
-    if (showFeedback) return; // Don't allow changing answer after feedback is shown
+    if (showFeedback) return;
     setSelectedAnswer(answerIndex);
     setShowFeedback(true);
     const newAnswers = [...userAnswers];
@@ -34,88 +114,30 @@ const QuizScreen = ({ route, navigation }: any) => {
     setUserAnswers(newAnswers);
   };
 
-  // This function now only handles moving to the next question.
   const handleNext = () => {
-    // Navigate to the next question or finish the quiz
     if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      // Restore the state of the next question if it was answered before
-      setSelectedAnswer(userAnswers[currentQuestionIndex + 1]); 
-      // If the next question hasn't been answered, don't show feedback
+      setSelectedAnswer(userAnswers[currentQuestionIndex + 1]);
       setShowFeedback(userAnswers[currentQuestionIndex + 1] !== null);
     } else {
-      // Quiz finished, navigate to Results
-      const score = userAnswers.reduce((acc, answer, index) => {
-        return acc + (answer === quizQuestions[index].correctAnswer ? 1 : 0);
-      }, 0);
-
-      navigation.navigate('Results', {
-        score,
-        totalQuestions: quizQuestions.length,
-        percentage: Math.round((score / quizQuestions.length) * 100),
-        incorrectAnswers: quizQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer),
-      });
+      finishQuiz();
     }
   };
 
-  /*
-  // --- OLD LOGIC: Submit button implementation (kept for reference) ---
-  // To revert:
-  // 1. Comment out the two functions above (`handleAnswerSelect` and `handleNext`).
-  // 2. Uncomment the two functions below.
-  // 3. Change the text in the "Next" button's <Text> component back to:
-  //    `{!showFeedback ? 'Submit' : currentQuestionIndex === quizQuestions.length - 1 ? 'Finish' : 'Next'}`
-
-  const handleAnswerSelect = (answerIndex: number) => {
-    if (showFeedback) return; // Don't allow changing answer after submitting
-    setSelectedAnswer(answerIndex);
-  };
-
-  const handleNext = () => {
-    if (selectedAnswer === null) {
-      Alert.alert('Please select an answer');
-      return;
-    }
-
-    // This block runs when the user presses "Submit"
-    if (!showFeedback) {
-      setShowFeedback(true);
-      const newAnswers = [...userAnswers];
-      newAnswers[currentQuestionIndex] = selectedAnswer;
-      setUserAnswers(newAnswers);
-      return; // Wait for the user to press "Next" or "Finish"
-    }
-
-    // This block runs when the user presses "Next" or "Finish"
-    if (currentQuestionIndex < quizQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(userAnswers[currentQuestionIndex + 1]); // Show previous answer if exists
-      setShowFeedback(false);
-    } else {
-      // Quiz finished, navigate to Results
-      const score = userAnswers.reduce((acc, answer, index) => {
-        return acc + (answer === quizQuestions[index].correctAnswer ? 1 : 0);
-      }, 0);
-
-      navigation.navigate('Results', {
-        score,
-        totalQuestions: quizQuestions.length,
-        percentage: Math.round((score / quizQuestions.length) * 100),
-        incorrectAnswers: quizQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer),
-      });
-    }
-  };
-  */
-
-  // This function handles the logic for the "Previous" button.
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
-      // Restore the state of the previous question
       setSelectedAnswer(userAnswers[currentQuestionIndex - 1]);
-      // Feedback should always be shown for previously answered questions
-      setShowFeedback(true); 
+      setShowFeedback(true);
     }
+  };
+
+  // Format time for display
+  const formatTime = () => {
+    if (timeLeft === null) return '';
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
   if (!currentQuestion) {
@@ -131,12 +153,14 @@ const QuizScreen = ({ route, navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Header with back button and title */}
+        {/* Header with back button and dynamic title/timer */}
         <View style={styles.headerContainer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{subject}</Text>
+          <Text style={styles.headerTitle}>
+            {timeLimit ? formatTime() : (subject === 'Mock Test' ? 'Mock Quiz' : subject)}
+          </Text>
         </View>
 
         <View style={styles.progressSection}>
@@ -168,9 +192,7 @@ const QuizScreen = ({ route, navigation }: any) => {
               onPress={() => handleAnswerSelect(index)}
               disabled={showFeedback}
             >
-              <Text style={styles.optionText}>
-                {option}
-              </Text>
+              <Text style={styles.optionText}>{option}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -203,7 +225,7 @@ const QuizScreen = ({ route, navigation }: any) => {
           <TouchableOpacity
             style={[styles.navButton, styles.nextButton]}
             onPress={handleNext}
-            disabled={!showFeedback} // Next button is disabled until an answer is selected
+            disabled={!showFeedback}
           >
             <Text style={styles.navButtonText}>
               {currentQuestionIndex === quizQuestions.length - 1 ? 'Finish' : 'Next'}
@@ -363,4 +385,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QuizScreen;
+export default MockQuizScreen;

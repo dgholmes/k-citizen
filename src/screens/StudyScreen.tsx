@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const StudyScreen = ({ navigation }: any) => {
   const subjects = [
@@ -102,8 +102,10 @@ const StudyScreen = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <View style={styles.header}>
         <Text style={styles.title}>Study</Text>
@@ -118,7 +120,7 @@ const StudyScreen = ({ navigation }: any) => {
           {subjects.map(renderSubjectCard)}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
