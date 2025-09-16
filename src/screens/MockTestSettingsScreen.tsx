@@ -23,11 +23,11 @@ const MockTestSettingsScreen = ({ navigation }: any) => {
   return (
     // Use a standard View and apply padding based on insets
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <Text style={styles.title}>Mock Test</Text>
+      <Text style={styles.title}>모의고사</Text>
 
       <View style={styles.descriptionContainer}>
         <Text style={styles.description}>
-          Take a comprehensive mock test to evaluate your knowledge across all subjects. This will help you prepare for the actual K-Citizen exam.
+          모든 과목에 걸쳐 종합적인 모의고사를 통해 지식을 평가해보세요. 실제 귀화 시험 준비에 도움이 될 것입니다.
         </Text>
       </View>
 
@@ -35,7 +35,7 @@ const MockTestSettingsScreen = ({ navigation }: any) => {
       <View style={styles.settingSection}>
         {/* Number of Questions */}
         <View>
-            <Text style={[styles.sectionLabel, { marginBottom: 20 }]}>Number of Questions</Text>
+            <Text style={[styles.sectionLabel, { marginBottom: 20 }]}>문제 수</Text>
             <View style={styles.optionsContainer}>
             {questionOptions.map((option) => (
                 <TouchableOpacity
@@ -65,7 +65,7 @@ const MockTestSettingsScreen = ({ navigation }: any) => {
         {/* Test Time */}
         <View>
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionLabel}>Test Time</Text>
+                <Text style={styles.sectionLabel}>시험 시간</Text>
                 <Switch
                     trackColor={{ false: '#E0E0E0', true: '#4A90E2' }}
                     thumbColor={isTimeEnabled ? '#fff' : '#fff'}
@@ -102,7 +102,7 @@ const MockTestSettingsScreen = ({ navigation }: any) => {
       </View>
 
       <TouchableOpacity style={styles.startButton} onPress={startTest}>
-        <Text style={styles.startButtonText}>Start Test</Text>
+        <Text style={styles.startButtonText}>시험 시작</Text>
       </TouchableOpacity>
     </View>
   );

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { questions } from '../data/questions'; // Assuming this path is correct
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { flatQuestions as questions } from '../data/derived';
 import { Question } from '../types'; // Assuming this path is correct
 
 const QuizScreen = ({ route, navigation }: any) => {
@@ -13,12 +14,30 @@ const QuizScreen = ({ route, navigation }: any) => {
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
 
   useEffect(() => {
-    // Filter questions by subject and limit to 20
-    const filteredQuestions = questions.filter(q => q.subject === subject);
-    const selectedQuestions = filteredQuestions.slice(0, 20);
-    setQuizQuestions(selectedQuestions);
-    // Initialize userAnswers array with nulls
-    setUserAnswers(Array(selectedQuestions.length).fill(null));
+    const load = async () => {
+      const filteredQuestions = questions.filter(q => q.subject === subject);
+      setQuizQuestions(filteredQuestions);
+      try {
+        const key = `progress:${subject}`;
+        const saved = await AsyncStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const savedIndex = Math.min(parsed.currentIndex ?? 0, Math.max(filteredQuestions.length - 1, 0));
+          const savedAnswers = Array.isArray(parsed.userAnswers) ? parsed.userAnswers.slice(0, filteredQuestions.length) : Array(filteredQuestions.length).fill(null);
+          setCurrentQuestionIndex(savedIndex);
+          setUserAnswers(savedAnswers);
+          const nextSel = savedAnswers[savedIndex] ?? null;
+          setSelectedAnswer(nextSel);
+          setShowFeedback(nextSel !== null);
+          return;
+        }
+      } catch {}
+      setUserAnswers(Array(filteredQuestions.length).fill(null));
+      setSelectedAnswer(null);
+      setShowFeedback(false);
+      setCurrentQuestionIndex(0);
+    };
+    load();
   }, [subject]);
 
   const currentQuestion = quizQuestions[currentQuestionIndex];
@@ -32,6 +51,11 @@ const QuizScreen = ({ route, navigation }: any) => {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestionIndex] = answerIndex;
     setUserAnswers(newAnswers);
+    AsyncStorage.setItem(`progress:${subject}`, JSON.stringify({
+      currentIndex: currentQuestionIndex,
+      userAnswers: newAnswers,
+      updatedAt: Date.now(),
+    })).catch(() => {});
   };
 
   // This function now only handles moving to the next question.
@@ -43,9 +67,14 @@ const QuizScreen = ({ route, navigation }: any) => {
       setSelectedAnswer(userAnswers[currentQuestionIndex + 1]); 
       // If the next question hasn't been answered, don't show feedback
       setShowFeedback(userAnswers[currentQuestionIndex + 1] !== null);
+      AsyncStorage.setItem(`progress:${subject}`, JSON.stringify({
+        currentIndex: currentQuestionIndex + 1,
+        userAnswers,
+        updatedAt: Date.now(),
+      })).catch(() => {});
     } else {
       // Quiz finished, navigate to Results
-      const score = userAnswers.reduce((acc, answer, index) => {
+      const score: number = userAnswers.reduce<number>((acc, answer, index) => {
         return acc + (answer === quizQuestions[index].correctAnswer ? 1 : 0);
       }, 0);
 
@@ -55,6 +84,7 @@ const QuizScreen = ({ route, navigation }: any) => {
         percentage: Math.round((score / quizQuestions.length) * 100),
         incorrectAnswers: quizQuestions.filter((q, index) => userAnswers[index] !== q.correctAnswer),
       });
+      AsyncStorage.removeItem(`progress:${subject}`).catch(() => {});
     }
   };
 
@@ -115,13 +145,18 @@ const QuizScreen = ({ route, navigation }: any) => {
       setSelectedAnswer(userAnswers[currentQuestionIndex - 1]);
       // Feedback should always be shown for previously answered questions
       setShowFeedback(true); 
+      AsyncStorage.setItem(`progress:${subject}`, JSON.stringify({
+        currentIndex: currentQuestionIndex - 1,
+        userAnswers,
+        updatedAt: Date.now(),
+      })).catch(() => {});
     }
   };
 
   if (!currentQuestion) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text>Loading...</Text>
+        <Text>{quizQuestions.length === 0 ? '문제를 찾을 수 없습니다.' : '로딩 중...'}</Text>
       </SafeAreaView>
     );
   }
@@ -197,7 +232,7 @@ const QuizScreen = ({ route, navigation }: any) => {
             onPress={handlePrevious}
             disabled={currentQuestionIndex === 0}
           >
-            <Text style={styles.navButtonText}>Previous</Text>
+            <Text style={styles.navButtonText}>이전</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -206,7 +241,7 @@ const QuizScreen = ({ route, navigation }: any) => {
             disabled={!showFeedback} // Next button is disabled until an answer is selected
           >
             <Text style={styles.navButtonText}>
-              {currentQuestionIndex === quizQuestions.length - 1 ? 'Finish' : 'Next'}
+              {currentQuestionIndex === quizQuestions.length - 1 ? '완료' : '다음'}
             </Text>
           </TouchableOpacity>
         </View>

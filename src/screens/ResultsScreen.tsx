@@ -9,7 +9,7 @@ const ResultsScreen = ({ route, navigation }: any) => {
       <ScrollView contentContainerStyle={styles.container}>
         {/* Custom Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Results</Text>
+          <Text style={styles.headerTitle}>결과</Text>
         </View>
 
         {/* Image */}
@@ -18,19 +18,19 @@ const ResultsScreen = ({ route, navigation }: any) => {
           style={styles.resultImage}
         />
 
-        <Text style={styles.congratulations}>Congratulations!</Text>
+        <Text style={styles.congratulations}>축하합니다!</Text>
         <Text style={styles.completionText}>
-          You've successfully completed the quiz.{"\n"}
-          Here's a summary of your performance.
+          퀴즈를 성공적으로 완료했습니다.{"\n"}
+          성과 요약을 확인해보세요.
         </Text>
 
         <View style={styles.scoreContainer}>
           <View style={styles.scoreBox}>
-            <Text style={styles.scoreLabel}>Score</Text>
+            <Text style={styles.scoreLabel}>점수</Text>
             <Text style={styles.scoreValue}>{score}/{totalQuestions}</Text>
           </View>
           <View style={styles.scoreBox}>
-            <Text style={styles.scoreLabel}>Percentage</Text>
+            <Text style={styles.scoreLabel}>정답률</Text>
             <Text style={styles.scoreValue}>{percentage}%</Text>
           </View>
         </View>
@@ -45,7 +45,7 @@ const ResultsScreen = ({ route, navigation }: any) => {
                 alert("Review answers functionality to be implemented.");
               }}
             >
-              <Text style={styles.buttonText}>Review Incorrect Answers</Text>
+              <Text style={styles.buttonText}>틀린 문제 복습</Text>
             </TouchableOpacity>
           )}
 
@@ -53,7 +53,7 @@ const ResultsScreen = ({ route, navigation }: any) => {
             style={styles.returnButton}
             onPress={() => navigation.popToTop()} 
           >
-            <Text style={styles.buttonText}>Return to Topics</Text>
+            <Text style={styles.buttonText}>주제로 돌아가기</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

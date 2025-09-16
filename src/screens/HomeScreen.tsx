@@ -1,32 +1,131 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { derivedSubjects, flatQuestions } from '../data/derived';
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }: any) => {
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const insets = useSafeAreaInsets();
+  const [recentTopics, setRecentTopics] = useState<Array<{ subject: string; currentIndex: number; percentage: string }>>([]);
+  const [overallStats, setOverallStats] = useState({
+    totalQuestionsAnswered: 0,
+    overallAccuracy: 0,
+    totalQuestions: 0
+  });
+
+  // Get random question
+  const getRandomQuestion = () => {
+    if (flatQuestions.length > 0) {
+      const randomIndex = Math.floor(Math.random() * flatQuestions.length);
+      return flatQuestions[randomIndex];
+    }
+    return null;
+  };
+
+  // Initialize with random question
+  useEffect(() => {
+    setCurrentQuestion(getRandomQuestion());
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // Load recent topics with percentages
+        const keys: string[] = await AsyncStorage.getAllKeys();
+        const progressKeys: string[] = keys.filter((k: string) => k.startsWith('progress:'));
+        const pairs: [string, string | null][] = await AsyncStorage.multiGet(progressKeys);
+        const items = pairs
+          .map(([key, val]: [string, string | null]) => {
+            const subject = key.replace('progress:', '');
+            const parsed = val ? JSON.parse(val) : {};
+            const answered = Array.isArray(parsed.userAnswers) ? parsed.userAnswers.filter((a: any) => a !== null).length : 0;
+            
+            // Find subject in derived data to get total questions
+            const subjectData = derivedSubjects.find((s: any) => s.name === subject);
+            const totalQuestions = subjectData?.totalQuestions || 0;
+            const percentage = totalQuestions > 0 ? `${Math.round((answered / totalQuestions) * 100)}%` : '0%';
+            
+            return { 
+              subject, 
+              currentIndex: parsed.currentIndex ?? 0, 
+              answered, 
+              updatedAt: parsed.updatedAt ?? 0,
+              percentage
+            };
+          })
+          // Incomplete only
+          .filter((it) => it.answered > 0)
+          // Most recent first
+          .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+          .slice(0, 4);
+        setRecentTopics(items);
+
+        // Calculate overall stats
+        let totalAnswered = 0;
+        let totalQuestions = 0;
+        let totalCorrect = 0;
+
+        for (const [key, val] of pairs) {
+          const subject = key.replace('progress:', '');
+          const parsed = val ? JSON.parse(val) : {};
+          const userAnswers = Array.isArray(parsed.userAnswers) ? parsed.userAnswers : [];
+          const answered = userAnswers.filter((a: any) => a !== null).length;
+          
+          const subjectData = derivedSubjects.find((s: any) => s.name === subject);
+          const subjectQuestions = subjectData?.totalQuestions || 0;
+          
+          totalAnswered += answered;
+          totalQuestions += subjectQuestions;
+
+          // Calculate correct answers (this is a simplified calculation)
+          // In a real app, you'd store correct/incorrect data
+          totalCorrect += Math.floor(answered * 0.75); // Assuming 75% accuracy as placeholder
+        }
+
+        setOverallStats({
+          totalQuestionsAnswered: totalAnswered,
+          overallAccuracy: totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0,
+          totalQuestions
+        });
+      } catch {}
+    };
+    const unsub = navigation.addListener('focus', load);
+    load();
+    return unsub;
+  }, [navigation]);
 
   const handleDoubleTap = () => {
-    setIsAnswerRevealed(!isAnswerRevealed);
+    if (!isAnswerRevealed) {
+      // First tap: reveal answer
+      setIsAnswerRevealed(true);
+    } else {
+      // Second tap: get new random question and reset
+      setIsAnswerRevealed(false);
+      setCurrentQuestion(getRandomQuestion());
+    }
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.appTitle}>K-Citizen</Text>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={24} color="#111618" />
-          </TouchableOpacity>
-        </View>
+                 {/* Header */}
+         <View style={styles.header}>
+           <Image 
+             source={require('../../assets/app_logo.png')} 
+             style={styles.appLogo}
+             resizeMode="contain"
+           />
+           <Text style={styles.appTitle}>귀화 패스</Text>
+         </View>
 
-        {/* Question of the Day */}
-        <Text style={styles.sectionTitle}>Question of the Day</Text>
+                 {/* Question of the Day */}
+         <Text style={styles.sectionTitle}>오늘의 문제</Text>
         <TouchableOpacity 
           style={styles.questionCard}
           onPress={handleDoubleTap}
@@ -38,116 +137,93 @@ const HomeScreen = ({ navigation }: any) => {
             }}
             style={styles.questionBackground}
           />
-          <View style={styles.questionOverlay}>
-            <View style={styles.questionContent}>
-              <Text style={styles.questionText}>
-                What is the national flower of South Korea?
-              </Text>
-              {!isAnswerRevealed ? (
-                <Text style={styles.tapToReveal}>
-                  Double tap to reveal the answer
-                </Text>
-              ) : (
-                <View style={styles.answerContainer}>
-                  <Text style={styles.answerText}>
-                    Mugunghwa (Rose of Sharon)
-                  </Text>
-                  <Text style={styles.answerExplanation}>
-                    The Mugunghwa, also known as the Rose of Sharon, is the national flower of South Korea. It symbolizes the country's resilience and eternal beauty.
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
+                     <View style={styles.questionOverlay}>
+             <View style={styles.questionContent}>
+               <Text style={styles.questionText}>
+                 {currentQuestion ? currentQuestion.question : '문제를 불러오는 중...'}
+               </Text>
+               {!isAnswerRevealed ? (
+                 <Text style={styles.tapToReveal}>
+                   정답을 보려면 두 번 탭하세요
+                 </Text>
+               ) : (
+                 <View style={styles.answerContainer}>
+                   <Text style={styles.answerText}>
+                     {currentQuestion ? currentQuestion.options[currentQuestion.correctAnswer] : ''}
+                   </Text>
+                   {currentQuestion?.explanation && (
+                     <Text style={styles.answerExplanation}>
+                       {currentQuestion.explanation}
+                     </Text>
+                   )}
+                 </View>
+               )}
+             </View>
+           </View>
         </TouchableOpacity>
 
-        {/* My Learning Status */}
-        <Text style={styles.sectionTitle}>My Learning Status</Text>
+                 {/* My Learning Status */}
+         <Text style={styles.sectionTitle}>나의 학습 현황</Text>
         <View style={styles.learningStatus}>
           <View style={styles.accuracyRow}>
-            <Text style={styles.accuracyLabel}>Overall Correct Answer Rate</Text>
-            <Text style={styles.accuracyPercentage}>75%</Text>
+            <Text style={styles.accuracyLabel}>전체 정답률</Text>
+            <Text style={styles.accuracyPercentage}>{overallStats.overallAccuracy}%</Text>
           </View>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '75%' }]} />
+            <View style={[styles.progressFill, { width: `${overallStats.overallAccuracy}%` }]} />
           </View>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Total Questions Answered</Text>
-            <Text style={styles.statValue}>125</Text>
-          </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Consecutive Study Days</Text>
-            <Text style={styles.statValue}>7</Text>
-          </View>
+                      <View style={styles.statBox}>
+              <Text style={styles.statLabel}>총 답변한 문제</Text>
+              <Text style={styles.statValue}>{overallStats.totalQuestionsAnswered}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>연속 학습 일수</Text>
+              <Text style={styles.statValue}>7</Text>
+            </View>
         </View>
 
-        {/* Recent Study Topics */}
-        <Text style={styles.sectionTitle}>Recent Study Topics</Text>
+                 {/* Recent Study Topics */}
+         <Text style={styles.sectionTitle}>최근 학습 주제</Text>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
           style={styles.topicsScrollView}
           contentContainerStyle={styles.topicsContainer}
         >
-          <TouchableOpacity 
-            style={styles.topicCard}
-            onPress={() => navigation.navigate('Study', { 
-              screen: 'Quiz', 
-              params: { subject: 'Korean History' }
-            })}
-          >
-            <Image 
-              source={{ 
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVR6KhIUyC0at0R4TqlbtW1Pb1drKdgJIyNh-WpNN2vozngNw_4EIG6qSJGIDqNItJ_cjywHg9c_KfhLYBuSrPv5PWPrTW45v7G_aeudld1eaMW4k2KI5HOcLNPOm9Jnfiqd7F5RbCTj2WQTjv0VqY5M20bFscbRldwpvmE47R-JkbK1lrZS8WKPEzwEPnjlEzHrqESijEDtfpHY0pOdeMly_VBNutmcm5FezGx1aQHhWPD7pokW9-eQlRdGJw9I-RWPILgglyvTI'
-              }}
-              style={styles.topicImage}
-            />
-                         <View style={styles.topicInfo}>
-               <Text style={styles.topicName}>Korean History</Text>
-               <Text style={styles.topicSubtitle}>80%</Text>
-             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.topicCard}
-            onPress={() => navigation.navigate('Study', { 
-              screen: 'Quiz', 
-              params: { subject: 'Korean Culture' }
-            })}
-          >
-            <Image 
-              source={{ 
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB8n7Z75FrfBLRjtQ2qFyj1jUDhgosR2hXgaTPc9oeIW9jxwJbK6o58PUPA9vkwVLB5wDixrPpSR4MoMu3u-FanDjMwMHc5wXQXjTI1l--htHAJ3qMlTsfsb3sTb9VEo7LKvj9znArkco3dTOOPzBvbOXSlttA8e7HZHAkh_7OuuUZtFDdeEBOVbh5nYlSbA2kiDtCGwYo-bPeX3nHp9kGdbzIEwWdOnbrGw6pi1HJSQl_uF0jJ1pOrKw2kuRKlq0D-ixVAHX8rFE0'
-              }}
-              style={styles.topicImage}
-            />
-                         <View style={styles.topicInfo}>
-               <Text style={styles.topicName}>Korean Culture</Text>
-               <Text style={styles.topicSubtitle}>70%</Text>
-             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.topicCard}
-            onPress={() => navigation.navigate('Study', { 
-              screen: 'Quiz', 
-              params: { subject: 'Korean Geography' }
-            })}
-          >
-            <Image 
-              source={{ 
-                uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBXp1XzYVrevWLcRs8HipZbpNM_zCzkW4amqSKLJ_5ZEcPlEfUF_NKvj5bROvkz1jH_wVeSJ2zWBucJIC3VsqOkrQArvnRtiSB1Huxdq1WVj6z_RoMXui6SYTOhS6whhJiXhJ9FJXIgzaRgEc4uC2e9jE57P8uU3qFso3STJuQFnQOkpTafyjDbvk94YIn7HSzKWRiA7wD-wWT3QfOPsGb03u1QAASAsW83PAxO2D8Icd33xbm5Yiv8cuQXqxNJWvNEo0ZVGAiD1Bg'
-              }}
-              style={styles.topicImage}
-            />
-                         <View style={styles.topicInfo}>
-               <Text style={styles.topicName}>Korean Geography</Text>
-               <Text style={styles.topicSubtitle}>90%</Text>
-             </View>
-          </TouchableOpacity>
+          {recentTopics.length === 0 ? (
+            <View style={styles.topicCard}>
+              <Image 
+                source={{ 
+                  uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCp83xA8viLLIDl77iAt4Odpb412nLE1quV4sY-aN1qC6gOdwKSFkG4C53o-lIVJP1kvdC27V7Oh0wfahBQlGHQ7fdZTaYwipBridTjCsVXoj0F8oT4_CLXdjcYb-qlx90OKROjtxD0R5H98PrNEptv6dL3fXg1MSVZwxc9XgFW2kupraEKPe8haAxQYzOz6vJvYRyoRnabrbQsnbun4CyI_qKD89eBNAQEvyBOVauK8SihBkauY0Gs7fG15HLww7vsl2H1lGJCfIc'
+                }}
+                style={styles.topicImage}
+              />
+                             <View style={styles.topicInfo}>
+                 <Text style={styles.topicName}>아직 최근 주제가 없습니다</Text>
+                 <Text style={styles.topicSubtitle}>퀴즈를 시작하여 최근 주제를 확인하세요</Text>
+               </View>
+            </View>
+          ) : recentTopics.map((t, idx) => (
+            <TouchableOpacity
+              key={`${t.subject}-${idx}`}
+              style={styles.topicCard}
+              onPress={() => navigation.navigate('Study', { screen: 'Quiz', params: { subject: t.subject } })}
+            >
+              <Image 
+                source={{ 
+                  uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVR6KhIUyC0at0R4TqlbtW1Pb1drKdgJIyNh-WpNN2vozngNw_4EIG6qSJGIDqNItJ_cjywHg9c_KfhLYBuSrPv5PWPrTW45v7G_aeudld1eaMW4k2KI5HOcLNPOm9Jnfiqd7F5RbCTj2WQTjv0VqY5M20bFscbRldwpvmE47R-JkbK1lrZS8WKPEzwEPnjlEzHrqESijEDtfpHY0pOdeMly_VBNutmcm5FezGx1aQHhWPD7pokW9-eQlRdGJw9I-RWPILgglyvTI'
+                }}
+                style={styles.topicImage}
+              />
+              <View style={styles.topicInfo}>
+                <Text style={styles.topicName}>{t.subject}</Text>
+                <Text style={styles.topicSubtitle}>{t.percentage}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
         
         {/* Add extra bottom padding to ensure proper spacing above tab bar */}
@@ -168,16 +244,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 16,
     paddingTop: 16, // Remove StatusBar.currentHeight since we're handling it with insets
     paddingBottom: 8,
+    gap: 12,
+  },
+  appLogo: {
+    width: 32,
+    height: 32,
   },
   appTitle: {
     fontSize: 18,
     fontWeight: '700', // Bold weight to match Manrope Bold
     color: '#111618',
-    flex: 1,
     fontFamily: 'System', // System font as fallback
   },
   settingsButton: {

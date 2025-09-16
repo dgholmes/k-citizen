@@ -1,33 +1,82 @@
 // src/screens/ProgressScreen.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock Data - Replace with your actual data source
-const overallProgress = {
-  score: 85,
-  progress: 85, // Assuming progress percentage is the same as the score
-};
-
-const summaryStats = {
-  accuracy: 82,
-  reviewNeeded: '45h 30m', // Using study time as a placeholder for "Review Needed"
-};
-
-const subjectPerformance = {
-  overall: 75,
-  subjects: [
-    { name: 'History', score: 20 },
-    { name: 'Culture', score: 50 },
-    { name: 'Law', score: 60 },
-    { name: 'Language', score: 80 },
-  ],
-};
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { derivedSubjects } from '../data/derived';
 
 const ProgressScreen = ({ navigation }: any) => {
   const insets = useSafeAreaInsets();
+  const [progressData, setProgressData] = useState({
+    overallProgress: { score: 0, progress: 0 },
+    summaryStats: { accuracy: 0, reviewNeeded: '0h 0m' },
+    subjectPerformance: { overall: 0, subjects: [] as any[] }
+  });
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      try {
+        const keys: string[] = await AsyncStorage.getAllKeys();
+        const progressKeys: string[] = keys.filter((k: string) => k.startsWith('progress:'));
+        const pairs: [string, string | null][] = await AsyncStorage.multiGet(progressKeys);
+        
+        let totalAnswered = 0;
+        let totalQuestions = 0;
+        let totalCorrect = 0;
+        const subjectStats: any[] = [];
+
+        // Calculate stats for each subject
+        for (const subject of derivedSubjects) {
+          const progressKey = `progress:${subject.name}`;
+          const progressData = pairs.find(([key]) => key === progressKey);
+          
+          if (progressData) {
+            const parsed = progressData[1] ? JSON.parse(progressData[1]) : {};
+            const userAnswers = Array.isArray(parsed.userAnswers) ? parsed.userAnswers : [];
+            const answered = userAnswers.filter((a: any) => a !== null).length;
+            const percentage = subject.totalQuestions > 0 ? Math.round((answered / subject.totalQuestions) * 100) : 0;
+            
+            totalAnswered += answered;
+            totalQuestions += subject.totalQuestions;
+            totalCorrect += Math.floor(answered * 0.75); // Simplified accuracy calculation
+            
+            subjectStats.push({
+              name: subject.name,
+              score: percentage
+            });
+          } else {
+            subjectStats.push({
+              name: subject.name,
+              score: 0
+            });
+          }
+        }
+
+        const overallPercentage = totalQuestions > 0 ? Math.round((totalAnswered / totalQuestions) * 100) : 0;
+        const overallAccuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+
+        setProgressData({
+          overallProgress: { 
+            score: overallPercentage, 
+            progress: overallPercentage 
+          },
+          summaryStats: { 
+            accuracy: overallAccuracy, 
+            reviewNeeded: `${Math.floor(totalAnswered / 10)}h ${Math.floor((totalAnswered % 10) * 6)}m` // Simplified time calculation
+          },
+          subjectPerformance: { 
+            overall: overallPercentage, 
+            subjects: subjectStats 
+          }
+        });
+      } catch (error) {
+        console.error('Error loading progress:', error);
+      }
+    };
+
+    loadProgress();
+  }, []);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -36,44 +85,44 @@ const ProgressScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2123" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Progress</Text>
+                 <Text style={styles.headerTitle}>진도</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Overall Progress Section */}
-        <Text style={styles.sectionTitle}>Overall Progress</Text>
+                 {/* Overall Progress Section */}
+         <Text style={styles.sectionTitle}>전체 진도</Text>
         <View style={styles.overallProgressContainer}>
             <View>
-                <Text style={styles.overallProgressLabel}>Overall Progress</Text>
-                <Text style={styles.overallProgressValue}>{overallProgress.score}% Score</Text>
+                <Text style={styles.overallProgressLabel}>전체 진도</Text>
+                <Text style={styles.overallProgressValue}>{progressData.overallProgress.score}% 점수</Text>
             </View>
             <View style={styles.graphIcon}>
                 <Ionicons name="analytics-outline" size={32} color="#28A745" />
             </View>
         </View>
         <View style={styles.progressBarContainer}>
-            <View style={[styles.progressFill, { width: `${overallProgress.progress}%` }]} />
+            <View style={[styles.progressFill, { width: `${progressData.overallProgress.progress}%` }]} />
         </View>
 
         {/* Summary Stats */}
         <View style={styles.summaryContainer}>
-            <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Overall Accuracy</Text>
-                <Text style={styles.summaryValue}>{summaryStats.accuracy}%</Text>
-            </View>
-            <View style={styles.summaryCard}>
-                <Text style={styles.summaryLabel}>Review Needed</Text>
-                <Text style={styles.summaryValue}>{summaryStats.reviewNeeded}</Text>
-            </View>
+                         <View style={styles.summaryCard}>
+                 <Text style={styles.summaryLabel}>전체 정확도</Text>
+                 <Text style={styles.summaryValue}>{progressData.summaryStats.accuracy}%</Text>
+             </View>
+             <View style={styles.summaryCard}>
+                 <Text style={styles.summaryLabel}>복습 필요</Text>
+                 <Text style={styles.summaryValue}>{progressData.summaryStats.reviewNeeded}</Text>
+             </View>
         </View>
 
-        {/* Subject Performance Section */}
-        <Text style={styles.sectionTitle}>Subject Performance</Text>
+                 {/* Subject Performance Section */}
+         <Text style={styles.sectionTitle}>과목별 성과</Text>
         <View style={styles.card}>
-            <Text style={styles.cardSubtitle}>Performance by Subject</Text>
-            <Text style={styles.performanceValue}>{subjectPerformance.overall}%</Text>
+            <Text style={styles.cardSubtitle}>과목별 성과</Text>
+            <Text style={styles.performanceValue}>{progressData.subjectPerformance.overall}%</Text>
             <View>
-                {subjectPerformance.subjects.map((subject, index) => (
+                {progressData.subjectPerformance.subjects.map((subject, index) => (
                     <View key={index} style={styles.subjectRow}>
                         <Text style={styles.subjectName}>{subject.name}</Text>
                         <View style={styles.subjectProgressBarContainer}>

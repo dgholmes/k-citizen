@@ -6,43 +6,43 @@ const SettingsScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>설정</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
+        <Text style={styles.sectionTitle}>외관</Text>
         
         <TouchableOpacity style={styles.settingItem}>
           <View>
-            <Text style={styles.settingLabel}>Language</Text>
-            <Text style={styles.settingValue}>English</Text>
+            <Text style={styles.settingLabel}>언어</Text>
+            <Text style={styles.settingValue}>한국어</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingItem}>
           <View>
-            <Text style={styles.settingLabel}>Theme</Text>
-            <Text style={styles.settingValue}>System Default</Text>
+            <Text style={styles.settingLabel}>테마</Text>
+            <Text style={styles.settingValue}>시스템 기본값</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.settingItem}>
           <View>
-            <Text style={styles.settingLabel}>Font Size</Text>
-            <Text style={styles.settingValue}>Medium</Text>
+            <Text style={styles.settingLabel}>글꼴 크기</Text>
+            <Text style={styles.settingValue}>중간</Text>
           </View>
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Audio</Text>
+        <Text style={styles.sectionTitle}>오디오</Text>
         
         <View style={styles.settingItem}>
           <View>
-            <Text style={styles.settingLabel}>Sound Effects</Text>
-            <Text style={styles.settingValue}>On</Text>
+            <Text style={styles.settingLabel}>효과음</Text>
+            <Text style={styles.settingValue}>켜짐</Text>
           </View>
           <Switch
             value={soundEffects}
@@ -54,21 +54,21 @@ const SettingsScreen = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data</Text>
+        <Text style={styles.sectionTitle}>데이터</Text>
         
         <TouchableOpacity style={styles.settingItem}>
-          <Text style={styles.settingLabel}>Reset Progress</Text>
+          <Text style={styles.settingLabel}>진도 초기화</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Information</Text>
+        <Text style={styles.sectionTitle}>앱 정보</Text>
         
         <View style={styles.appInfo}>
           <Text style={styles.appName}>K-Citizen, Inc.</Text>
           <Text style={styles.appVersion}>v 1.0.0</Text>
           <Text style={styles.appDescription}>
-            This is an app designed to help foreigners prepare for the South Korean naturalization interview.
+            이 앱은 외국인들이 대한민국 귀화 면접을 준비하는 데 도움을 주기 위해 설계되었습니다.
           </Text>
         </View>
       </View>

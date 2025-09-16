@@ -4,12 +4,12 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 const MockTestScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mock Test</Text>
+      <Text style={styles.title}>모의고사</Text>
       
       <View style={styles.descriptionContainer}>
         <Text style={styles.description}>
-          Take a comprehensive mock test to evaluate your knowledge across all subjects.
-          This will help you prepare for the actual K-Citizen exam.
+          모든 과목에 걸쳐 종합적인 모의고사를 통해 지식을 평가해보세요.
+          실제 귀화 시험 준비에 도움이 될 것입니다.
         </Text>
       </View>
 
@@ -17,21 +17,21 @@ const MockTestScreen = ({ navigation }: any) => {
         style={styles.startButton}
         onPress={() => navigation.navigate('MockTestSettings')}
       >
-        <Text style={styles.startButtonText}>Start Mock Test</Text>
+        <Text style={styles.startButtonText}>모의고사 시작</Text>
       </TouchableOpacity>
 
       <View style={styles.infoContainer}>
         <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Duration:</Text>
-          <Text style={styles.infoValue}>30-45 minutes</Text>
+          <Text style={styles.infoLabel}>소요 시간:</Text>
+          <Text style={styles.infoValue}>30-45분</Text>
         </View>
         <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Questions:</Text>
-          <Text style={styles.infoValue}>20-30 questions</Text>
+          <Text style={styles.infoLabel}>문제 수:</Text>
+          <Text style={styles.infoValue}>20-30문제</Text>
         </View>
         <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>Format:</Text>
-          <Text style={styles.infoValue}>Mixed subjects</Text>
+          <Text style={styles.infoLabel}>형식:</Text>
+          <Text style={styles.infoValue}>과목 혼합</Text>
         </View>
       </View>
     </View>

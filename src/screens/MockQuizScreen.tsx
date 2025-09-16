@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { questions } from '../data/questions'; // Assuming this path is correct
+import { flatQuestions as questions } from '../data/derived';
 import { Question } from '../types'; // Assuming this path is correct
 
 // Helper function to shuffle an array
@@ -55,9 +55,9 @@ const MockQuizScreen = ({ route, navigation }: any) => {
       const allQuestions = shuffleArray([...questions]);
       selectedQuestions = allQuestions.slice(0, questionCount);
     } else {
-      // For regular quizzes, filter by subject
+      // For regular quizzes, filter by subject (no slicing)
       const filteredQuestions = questions.filter(q => q.subject === subject);
-      selectedQuestions = filteredQuestions.slice(0, 20); // Default to 20 for topic quizzes
+      selectedQuestions = filteredQuestions;
     }
     setQuizQuestions(selectedQuestions);
     setUserAnswers(Array(selectedQuestions.length).fill(null));
@@ -143,7 +143,7 @@ const MockQuizScreen = ({ route, navigation }: any) => {
   if (!currentQuestion) {
     return (
       <SafeAreaView style={styles.container}>
-        <Text>Loading...</Text>
+        <Text>{quizQuestions.length === 0 ? '문제를 찾을 수 없습니다.' : 'Loading...'}</Text>
       </SafeAreaView>
     );
   }
